@@ -9,7 +9,7 @@ export function createOrderRoutes(checkoutService: CheckoutService): Router {
    * Retorna status atual do pedido.
    */
   router.get('/:orderId/status', async (req: Request, res: Response) => {
-    const correlationId = (req as any).correlationId;
+    const correlationId = req.correlationId;
     const { orderId } = req.params;
 
     try {

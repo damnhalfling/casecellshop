@@ -31,6 +31,9 @@ npm start
 
 # Rodar testes
 npm test
+
+# Docker (alternativa)
+docker compose up --build
 ```
 
 O servidor sobe em `http://localhost:3000`.
@@ -43,6 +46,7 @@ O servidor sobe em `http://localhost:3000`.
 | GET | /products/:id | Busca produto por ID |
 | POST | /checkout | Inicia checkout assíncrono (202 Accepted) |
 | GET | /orders/:orderId/status | Consulta status do pedido |
+| POST | /admin/reconcile | Trigger manual de reconciliação |
 | GET | /metrics | Métricas Prometheus |
 | GET | /health | Health check |
 
@@ -77,7 +81,6 @@ O contrato completo está em [`openapi.yaml`](./openapi.yaml).
 - **Fila em memória** em vez de RabbitMQ/SQS
 - **Tracing stub** em vez de OpenTelemetry SDK real
 - **Sem autenticação** — foco na lógica de negócio
-- **Sem Docker Compose** — roda direto com `npm run dev`
 - **Worker single-process** — em produção seria um consumer separado
 - **Concorrência limitada** — em single-process JS, a atomicidade é garantida pelo event loop;
   em produção com múltiplas instâncias, usaríamos `UPDATE ... WHERE stock >= qty` no banco
@@ -483,6 +486,9 @@ com revisão crítica de todas as decisões.
 | Gravar antes de enfileirar | Pedido órfão é mais fácil de reconciliar | Precisa de job de reconciliação |
 | Stale-while-revalidate | Latência consistente para o cliente | Pode servir dado levemente antigo |
 | Worker no mesmo processo | Simplicidade para o desafio | Em produção seria separado |
+| Reconciliation worker | Detecta pedidos órfãos e stuck | Adiciona complexidade operacional |
+| Docker multi-stage | Imagem leve (~120MB) e build reproduzível | Requer Docker instalado |
+| Lock timeout no cache | Evita locks órfãos se refresh travar | Pode causar refresh duplicado em edge case |
 
 ---
 
@@ -491,7 +497,7 @@ com revisão crítica de todas as decisões.
 ```
 src/
 ├── config/          # Configurações centralizadas
-├── cache/           # CacheService (cache-aside + stale-while-revalidate)
+├── cache/           # CacheService (cache-aside + stale-while-revalidate + stampede lock com timeout)
 ├── middleware/      # correlationId, request logger
 ├── observability/   # Logger (pino), Metrics (prom-client), Tracing (stub)
 ├── queue/           # QueueService (fila em memória)
@@ -499,6 +505,11 @@ src/
 ├── routes/          # Express routes (products, checkout, orders, metrics)
 ├── services/        # ProductService, CheckoutService, StockService
 ├── tests/           # Jest tests (unit + integration)
-├── types/           # TypeScript interfaces
-└── workers/         # ErpWorker (consumer da fila)
+├── types/           # TypeScript interfaces + Express augmentation
+├── workers/         # ErpWorker (consumer da fila) + ReconciliationWorker
+└── server.ts        # Express app factory + DI
+
+Dockerfile           # Multi-stage build (builder + production)
+docker-compose.yml   # Execução com Docker
+openapi.yaml         # Contrato OpenAPI 3.0.3
 ```

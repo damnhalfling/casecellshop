@@ -11,7 +11,7 @@ export function requestLoggerMiddleware(
   next: NextFunction
 ): void {
   const start = Date.now();
-  const correlationId = (req as any).correlationId;
+  const correlationId = req.correlationId;
 
   // Log de entrada
   logger.info({

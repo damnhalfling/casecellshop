@@ -121,6 +121,16 @@ describe('Integration Tests', () => {
       expect(res.body.error.code).toBe('INVALID_REQUEST');
     });
 
+    it('deve retornar 400 para quantity não inteiro', async () => {
+      const res = await request(app).post('/checkout', {
+        items: [{ productId: 'prod-001', quantity: 1.5 }],
+        idempotencyKey: 'test-idem-float',
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('INVALID_REQUEST');
+    });
+
     it('deve retornar 409 para estoque insuficiente', async () => {
       const res = await request(app).post('/checkout', {
         items: [{ productId: 'prod-003', quantity: 100 }],

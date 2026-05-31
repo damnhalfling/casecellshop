@@ -15,6 +15,7 @@ import { QueueService } from './queue/queue-service';
 
 // Worker
 import { ErpWorker } from './workers/erp-worker';
+import { ReconciliationWorker } from './workers/reconciliation-worker';
 
 // Middleware
 import { correlationIdMiddleware } from './middleware/correlation-id';
@@ -46,8 +47,14 @@ export function createApp() {
   );
 
   // Worker (processa pedidos da fila)
-  const erpWorker = new ErpWorker(queue, orderRepo, stockService, 0.1);
+  // failureRate > 0 apenas em dev para demonstrar retry; em produção seria 0
+  const isProduction = process.env.NODE_ENV === 'production';
+  const erpWorker = new ErpWorker(queue, orderRepo, stockService, isProduction ? 0 : 0.1);
   erpWorker.start();
+
+  // Reconciliation worker (detecta pedidos órfãos e stuck)
+  const reconciliationWorker = new ReconciliationWorker(orderRepo, queue, stockService);
+  reconciliationWorker.start();
 
   // --- Middleware ---
   app.use(express.json());
@@ -69,7 +76,13 @@ export function createApp() {
     });
   });
 
-  return { app, productRepo, orderRepo, queue, erpWorker, stockService, productService, checkoutService };
+  // Admin: trigger manual de reconciliação
+  app.post('/admin/reconcile', async (_req, res) => {
+    const result = await reconciliationWorker.reconcile();
+    res.json({ data: result });
+  });
+
+  return { app, productRepo, orderRepo, queue, erpWorker, reconciliationWorker, stockService, productService, checkoutService };
 }
 
 // Start server se executado diretamente

@@ -221,6 +221,36 @@ paths:
                   queueSize:
                     type: integer
 
+  /admin/reconcile:
+    post:
+      summary: Trigger manual de reconciliação
+      description: |
+        Executa reconciliação manualmente: republica pedidos "pending" antigos na fila
+        e marca pedidos "processing" stuck como failed (com rollback de estoque).
+      operationId: triggerReconciliation
+      tags: [Admin]
+      responses:
+        '200':
+          description: Resultado da reconciliação
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      republished:
+                        type: integer
+                        description: Pedidos pending republicados na fila
+                      failed:
+                        type: integer
+                        description: Pedidos stuck marcados como failed
+                      errors:
+                        type: array
+                        items:
+                          type: string
+
   /metrics:
     get:
       summary: Métricas Prometheus

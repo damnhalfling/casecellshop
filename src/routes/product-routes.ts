@@ -10,7 +10,7 @@ export function createProductRoutes(productService: ProductService): Router {
    */
   router.get('/', async (req: Request, res: Response) => {
     try {
-      const correlationId = (req as any).correlationId;
+      const correlationId = req.correlationId;
       const products = await productService.getAll(correlationId);
 
       res.json({
@@ -36,7 +36,7 @@ export function createProductRoutes(productService: ProductService): Router {
    */
   router.get('/:id', async (req: Request, res: Response) => {
     try {
-      const correlationId = (req as any).correlationId;
+      const correlationId = req.correlationId;
       const product = await productService.getById(req.params.id, correlationId);
 
       if (!product) {

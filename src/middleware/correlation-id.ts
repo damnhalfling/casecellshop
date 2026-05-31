@@ -17,7 +17,7 @@ export function correlationIdMiddleware(
     uuidv4();
 
   // Disponibiliza no request para uso nos handlers
-  (req as any).correlationId = correlationId;
+  req.correlationId = correlationId;
 
   // Retorna no response header para rastreabilidade
   res.setHeader('X-Correlation-Id', correlationId);

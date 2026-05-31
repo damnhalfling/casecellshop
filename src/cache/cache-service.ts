@@ -84,12 +84,27 @@ export class CacheService {
   /**
    * Verifica se um refresh já está em andamento para evitar stampede.
    * Retorna true se o lock foi adquirido (caller deve fazer refresh).
+   * Lock expira automaticamente após timeout para evitar locks órfãos.
    */
-  acquireRefreshLock(key: string): boolean {
+  acquireRefreshLock(key: string, timeoutMs: number = 10_000): boolean {
     if (this.refreshLocks.has(key)) {
       return false; // Outro processo já está fazendo refresh
     }
     this.refreshLocks.add(key);
+
+    // Safety timeout: libera lock automaticamente se não for liberado manualmente
+    setTimeout(() => {
+      if (this.refreshLocks.has(key)) {
+        this.refreshLocks.delete(key);
+        logger.warn({
+          event: 'cache_refresh_lock_timeout',
+          cache: this.cacheName,
+          key,
+          timeoutMs,
+        });
+      }
+    }, timeoutMs);
+
     return true;
   }
 

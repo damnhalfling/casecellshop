@@ -12,7 +12,7 @@ export function createCheckoutRoutes(checkoutService: CheckoutService): Router {
    * Retorna 202 Accepted com orderId para acompanhamento.
    */
   router.post('/', async (req: Request, res: Response) => {
-    const correlationId = (req as any).correlationId;
+    const correlationId = req.correlationId;
 
     try {
       // Validação básica
@@ -39,11 +39,16 @@ export function createCheckoutRoutes(checkoutService: CheckoutService): Router {
       }
 
       for (const item of items) {
-        if (!item.productId || !item.quantity || item.quantity < 1) {
+        if (
+          !item.productId ||
+          !item.quantity ||
+          item.quantity < 1 ||
+          !Number.isInteger(item.quantity)
+        ) {
           res.status(400).json({
             error: {
               code: 'INVALID_REQUEST',
-              message: 'Cada item deve ter productId e quantity >= 1',
+              message: 'Cada item deve ter productId e quantity inteiro >= 1',
             },
           });
           return;

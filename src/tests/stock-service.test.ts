@@ -108,5 +108,44 @@ describe('StockService', () => {
       const finalStock = await productRepo.getStock('p2');
       expect(finalStock).toBeGreaterThanOrEqual(0);
     });
+
+    /**
+     * NOTA SOBRE CONCORRÊNCIA EM NODE.JS:
+     *
+     * Em single-process Node.js, o event loop serializa operações síncronas em memória,
+     * então race conditions "reais" não ocorrem no mesmo tick. O teste acima valida
+     * a lógica de negócio (nunca vender mais que o disponível).
+     *
+     * Em produção com múltiplas instâncias, a atomicidade seria garantida pelo banco:
+     *   UPDATE products SET stock = stock - :qty WHERE id = :id AND stock >= :qty
+     *   (affected_rows = 0 indica estoque insuficiente)
+     *
+     * O teste abaixo simula o cenário de "esgotamento progressivo" que ocorreria
+     * com múltiplos consumers processando simultaneamente.
+     */
+    it('deve esgotar estoque corretamente com múltiplas reservas sequenciais', async () => {
+      // p2 tem estoque = 2
+      // Reserva 1, depois 1, depois tenta mais 1 (deve falhar)
+      const r1 = await stockService.reserve('p2', 1, 'seq-1');
+      const r2 = await stockService.reserve('p2', 1, 'seq-2');
+      const r3 = await stockService.reserve('p2', 1, 'seq-3');
+
+      expect(r1).toBe(true);
+      expect(r2).toBe(true);
+      expect(r3).toBe(false); // Estoque esgotado
+
+      const finalStock = await productRepo.getStock('p2');
+      expect(finalStock).toBe(0);
+    });
+
+    it('deve garantir que estoque nunca fica negativo mesmo com reservas maiores que disponível', async () => {
+      // p2 tem estoque = 2, tenta reservar 3 de uma vez
+      const result = await stockService.reserve('p2', 3, 'big-reserve');
+      expect(result).toBe(false);
+
+      // Estoque não deve ter mudado
+      const finalStock = await productRepo.getStock('p2');
+      expect(finalStock).toBe(2);
+    });
   });
 });
