@@ -1,0 +1,35 @@
+{
+  "name": "casecellshop",
+  "version": "1.0.0",
+  "description": "CaseCellShop - Desafio Técnico Backend Pleno",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --respawn src/server.ts",
+    "test": "jest --runInBand --forceExit",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/ --ext .ts",
+    "openapi": "ts-node src/scripts/generate-openapi.ts"
+  },
+  "keywords": ["backend", "typescript", "cache", "checkout", "observability"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.0",
+    "@types/uuid": "^9.0.7",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pino": "^8.17.2",
+    "prom-client": "^15.1.0",
+    "uuid": "^9.0.0"
+  }
+}
